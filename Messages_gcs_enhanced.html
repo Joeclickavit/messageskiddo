@@ -544,6 +544,12 @@
     const db = getDatabase(app);
     const auth = getAuth(app);
 
+    // Server-adjusted clock: every device stamps messages with the same time base, so a friend's
+    // clock being a few seconds off can no longer put their message above yours.
+    let serverOffset = 0;
+    onValue(ref(db, '.info/serverTimeOffset'), (snap) => { serverOffset = Number(snap.val()) || 0; }, () => {});
+    const nowTs = () => Date.now() + serverOffset;
+
     // Web Locks make tabs take turns for one-time setup (falls back to no lock in old browsers)
     const withLock = (name, fn) => (navigator.locks && navigator.locks.request) ? navigator.locks.request(name, fn) : fn();
     const makeId = () => (Math.random().toString(36).substring(2, 6) + "-" + Math.random().toString(36).substring(2, 6)).toUpperCase();
@@ -621,7 +627,7 @@
 
     function markAsRead(tid) {
         if (!tid) return;
-        const now = Date.now();
+        const now = nowTs();
         lastRead[tid] = now;
         set(ref(db, `users/${myID}/last_read/${tid}`), now);
         scheduleListUpdate();
@@ -776,6 +782,7 @@
         const container = document.getElementById('message-container');
         const msgs = [];
         snap.forEach(c => { const m = c.val(); if (m && !(m.sender !== myID && blocked.has(m.sender))) msgs.push(Object.assign({ _key: c.key }, m)); });
+        msgs.sort((x, y) => ((x.ts || 0) - (y.ts || 0)) || (x._key < y._key ? -1 : x._key > y._key ? 1 : 0));
         const modRules = isGroup ? currentRules() : [];
 
         // Read receipts: one lookup per render instead of one per message
@@ -1073,7 +1080,7 @@
         const groupData = { name: gName, isGroup: true, members: members, owner: myID, roles: Object.fromEntries(members.map(id => [id, id === myID ? 'Owner' : 'User'])) };
         members.forEach(mID => updates[`users/${mID}/active_chats/${gID}`] = groupData);
         await update(ref(db), updates);
-        push(ref(db, `chats/${gID}`), { sender: "SYSTEM", content: `Group Created: ${gName}`, type: 'system', ts: Date.now() });
+        push(ref(db, `chats/${gID}`), { sender: "SYSTEM", content: `Group Created: ${gName}`, type: 'system', ts: nowTs() });
         selectedMembers.clear();
         document.getElementById('group-menu').classList.add('hidden');
         openChat(gID, true);
@@ -1107,7 +1114,7 @@
         (updated.members || []).forEach(id => updates[`users/${id}/active_chats/${groupID}`] = updated);
         updates[`users/${memberID}/active_chats/${groupID}`] = null;
         await update(ref(db), updates);
-        push(ref(db, `chats/${groupID}`), { sender: 'SYSTEM', content: `${contacts[memberID] || memberID} was removed from the group.`, type: 'system', ts: Date.now() });
+        push(ref(db, `chats/${groupID}`), { sender: 'SYSTEM', content: `${contacts[memberID] || memberID} was removed from the group.`, type: 'system', ts: nowTs() });
         openChat(groupID, true);
     };
 
@@ -1257,7 +1264,7 @@
         const content = el.value.trim();
         if (!content || !activeTarget) return;
         if (!guardSend(content)) return;
-        const msg = { sender: myID, content, type: 'text', ts: Date.now() };
+        const msg = { sender: myID, content, type: 'text', ts: nowTs() };
         if (replyTo) msg.reply = { key: replyTo.key, sender: replyTo.sender, text: replyTo.text };
         const mm = extractMentions(content);
         if (mm.ids.length) { msg.mentions = mm.ids; msg.mt = mm.tokens; }
@@ -1281,7 +1288,7 @@
             const r = new FileReader();
             r.onload = async (e) => {
                 touchPrivateChat();
-                try { await sendMessageWithStorageRecovery(currentConvoID, { sender: myID, content: e.target.result, type: 'image', ts: Date.now() }); }
+                try { await sendMessageWithStorageRecovery(currentConvoID, { sender: myID, content: e.target.result, type: 'image', ts: nowTs() }); }
                 catch (err) { console.error(err); }
             };
             r.readAsDataURL(file);
@@ -1598,7 +1605,7 @@
         rememberGif(url, name);
         closeGifPanel();
         touchPrivateChat();
-        try { await sendMessageWithStorageRecovery(currentConvoID, { sender: myID, content: url, type: 'image', ts: Date.now() }); }
+        try { await sendMessageWithStorageRecovery(currentConvoID, { sender: myID, content: url, type: 'image', ts: nowTs() }); }
         catch (e) { console.error(e); }
     };
 
@@ -1685,7 +1692,7 @@
             reader.onload = async () => {
                 if (reader.result.length > VOICE_MAX_CHARS) return alert('That voice message is too large to send. Try a shorter one.');
                 touchPrivateChat(targetAtStart);
-                try { await sendMessageWithStorageRecovery(convoAtStart, { sender: myID, content: reader.result, type: 'voice', dur: Math.round(dur * 10) / 10, ts: Date.now() }); }
+                try { await sendMessageWithStorageRecovery(convoAtStart, { sender: myID, content: reader.result, type: 'voice', dur: Math.round(dur * 10) / 10, ts: nowTs() }); }
                 catch (e) { console.error(e); }
             };
             reader.onerror = () => alert('Could not read the recording.');
@@ -2590,7 +2597,7 @@
                         const updates = {};
                         members.forEach(m => { updates[`users/${m}/active_chats/${gid}`] = next; });
                         await update(ref(db), updates);
-                        await push(ref(db, `chats/${gid}`), { sender: 'SYSTEM', content: `${contacts[uid] || uid} joined with an invite code.`, type: 'system', ts: Date.now() });
+                        await push(ref(db, `chats/${gid}`), { sender: 'SYSTEM', content: `${contacts[uid] || uid} joined with an invite code.`, type: 'system', ts: nowTs() });
                     }
                     await set(ref(db, `joinRequests/${gid}/${uid}`), null);
                 });
@@ -2616,7 +2623,7 @@
         (g.members || []).forEach(m => { updates[`users/${m}/active_chats/${gid}/mutes/${mID}`] = until; });
         try {
             await update(ref(db), updates);
-            push(ref(db, `chats/${gid}`), { sender: 'SYSTEM', content: until ? `${contacts[mID] || mID} was muted for ${mins} minute${mins === 1 ? '' : 's'}.` : `${contacts[mID] || mID} was unmuted.`, type: 'system', ts: Date.now() }).catch(() => {});
+            push(ref(db, `chats/${gid}`), { sender: 'SYSTEM', content: until ? `${contacts[mID] || mID} was muted for ${mins} minute${mins === 1 ? '' : 's'}.` : `${contacts[mID] || mID} was unmuted.`, type: 'system', ts: nowTs() }).catch(() => {});
         } catch (e) { console.error(e); alert('Could not change the mute.'); }
     };
     function syncModlog() {
