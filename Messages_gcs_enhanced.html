@@ -246,11 +246,69 @@
         #auth-banner { position: fixed; left: 12px; bottom: 12px; max-width: 360px; z-index: 60; background: #ff9500; color: #000; font-size: 12px; padding: 8px 12px; border-radius: 10px; box-shadow: 0 6px 20px rgba(0,0,0,.3); }
         #auth-banner.hidden { display: none; }
         .modlog-row { font-size: 11px; padding: 4px 0; border-bottom: 1px solid var(--border); color: var(--text-secondary); overflow-wrap: anywhere; }
+
+        /* ===== Calls ===== */
+        #main-panel { position: relative; }
+        #call-btn { background: none; border: none; cursor: pointer; display: flex; align-items: center; color: #007AFF; }
+        #call-view { display: none; position: absolute; inset: 0; z-index: 40; flex-direction: column; background: #000; color: #fff; }
+        #call-view.open { display: flex; }
+        #call-head { display: flex; align-items: center; gap: 14px; padding: 12px 18px; background: #111113; flex-shrink: 0; }
+        #call-head button { background: #2b2d31; border: none; color: #fff; border-radius: 8px; padding: 5px 12px; font-size: 13px; cursor: pointer; }
+        #call-title { font-weight: 700; }
+        #call-count { color: #98989f; font-size: 12px; margin-left: auto; }
+        #call-stage { flex: 1; min-height: 0; overflow-y: auto; display: flex; padding: 16px; }
+        #call-grid { display: grid; gap: 10px; margin: auto; width: 100%; }
+        .call-tile { position: relative; aspect-ratio: 16 / 9; border-radius: 12px; overflow: hidden; background: #2b2d31; display: flex; align-items: center; justify-content: center; border: 2px solid transparent; transition: border-color .12s; }
+        .call-tile.speaking { border-color: #3ba55d; }
+        .call-tile video { position: absolute; inset: 0; width: 100%; height: 100%; background: #000; }
+        .call-av { width: 96px; height: 96px; max-width: 30%; aspect-ratio: 1; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 40px; font-weight: 700; color: #fff; }
+        .call-label { position: absolute; left: 10px; bottom: 10px; background: rgba(0,0,0,.62); padding: 3px 10px; border-radius: 6px; font-size: 13px; display: flex; gap: 6px; align-items: center; max-width: 90%; }
+        .call-label .muted-ic { display: none; color: #ed4245; }
+        .call-tile.is-muted .call-label .muted-ic { display: inline; }
+        .call-label small { color: #b5bac1; }
+        #call-controls { display: flex; justify-content: center; gap: 14px; padding: 14px; flex-shrink: 0; background: #111113; }
+        .call-ctl { width: 52px; height: 52px; border-radius: 50%; border: none; background: #2b2d31; color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .call-ctl:hover { background: #3a3c42; }
+        .call-ctl.active { background: #fff; color: #111; }
+        .call-ctl.end { background: #ed4245; }
+        .call-ctl.end:hover { background: #c93b3e; }
+        .call-ctl svg { width: 24px; height: 24px; fill: currentColor; }
+        .call-ctl .slash { display: none; }
+        .call-ctl.active .slash { display: block; }
+        #call-bar { display: none; flex-shrink: 0; border-top: 1px solid var(--border); padding: 10px 14px; background: var(--sidebar-bg); }
+        #call-bar.open { display: block; }
+        #call-bar .cb-top { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; color: #3ba55d; font-size: 13px; }
+        #call-bar .cb-top small { display: block; color: var(--text-secondary); font-size: 11px; }
+        #call-bar .cb-btns { display: flex; gap: 8px; }
+        #call-bar button { flex: 1; border: none; border-radius: 8px; padding: 6px; font-size: 12px; font-weight: 700; cursor: pointer; background: #3ba55d; color: #fff; }
+        #call-bar button.end { background: #ed4245; }
+        #ring-banner { display: none; position: fixed; top: 14px; right: 14px; z-index: 80; min-width: 300px; max-width: 380px; align-items: center; gap: 12px; padding: 12px 14px; background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: 14px; box-shadow: 0 10px 40px rgba(0,0,0,.35); }
+        #ring-banner.open { display: flex; animation: ringpulse 1.4s ease-in-out infinite; }
+        #ring-banner .ring-text { flex: 1; min-width: 0; }
+        #ring-banner .ring-text b { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        #ring-banner .ring-text small { color: var(--text-secondary); font-size: 12px; }
+        .ring-btn { width: 40px; height: 40px; border-radius: 50%; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #fff; flex-shrink: 0; }
+        .ring-btn svg { width: 20px; height: 20px; fill: currentColor; }
+        .ring-btn.ok { background: #3ba55d; }
+        .ring-btn.no { background: #ed4245; }
+        @keyframes ringpulse { 50% { box-shadow: 0 0 0 4px rgba(59,165,93,.35), 0 10px 40px rgba(0,0,0,.35); } }
+        #call-banner { display: none; flex-shrink: 0; align-items: center; gap: 12px; padding: 8px 24px; background: #1f8a4c; color: #fff; font-size: 14px; }
+        #call-banner.open { display: flex; }
+        #call-banner .cb-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        #call-banner button { background: #fff; color: #1f8a4c; border: none; border-radius: 999px; padding: 5px 16px; font-weight: 700; font-size: 13px; cursor: pointer; flex-shrink: 0; }
+        #call-banner .live-dot { width: 9px; height: 9px; border-radius: 50%; background: #fff; flex-shrink: 0; animation: recpulse 1.2s ease-in-out infinite; }
     </style>
 </head>
 <body>
 
 <div id="auth-banner" class="hidden"></div>
+
+<div id="ring-banner">
+    <div style="font-size:26px">&#128222;</div>
+    <div class="ring-text"><b id="ring-title"></b><small id="ring-sub"></small></div>
+    <button class="ring-btn ok" onclick="acceptRing()" title="Join call" aria-label="Join call"><svg viewBox="0 0 24 24"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg></button>
+    <button class="ring-btn no" onclick="declineRing()" title="Decline" aria-label="Decline"><svg viewBox="0 0 24 24"><path d="M12 9c-1.6 0-3.15.25-4.6.72v3.1c0 .39-.23.74-.56.9-.98.49-1.87 1.12-2.66 1.85-.18.18-.43.28-.7.28-.28 0-.53-.11-.71-.29L.29 13.08a.956.956 0 0 1-.29-.7c0-.28.11-.53.29-.71C3.34 8.78 7.46 7 12 7s8.66 1.78 11.71 4.67c.18.18.29.43.29.71 0 .28-.11.53-.29.71l-2.48 2.48c-.18.18-.43.29-.71.29-.27 0-.52-.11-.7-.28a11.27 11.27 0 0 0-2.67-1.85.996.996 0 0 1-.56-.9v-3.1C15.15 9.25 13.6 9 12 9z"/></svg></button>
+</div>
 
 <audio id="ping-sound" src="https://actions.google.com/sounds/v1/foley/notification_high_pitch.ogg"></audio>
 
@@ -313,6 +371,11 @@
         </div>
 
         <div id="convo-list" class="flex-1 overflow-y-auto"></div>
+
+        <div id="call-bar">
+            <div class="cb-top"><span style="font-size:16px">&#9679;</span><div><b>Call Connected</b><small id="call-bar-name"></small></div></div>
+            <div class="cb-btns"><button onclick="showCallView(true)">Open call</button><button class="end" onclick="leaveCall()">Leave</button></div>
+        </div>
     </div>
 
     <!-- RIGHT PANEL: chat, info, tutorial, or empty state -->
@@ -329,6 +392,7 @@
             <header class="ios-blur sticky top-0 z-10 border-b px-6 py-3 flex items-center justify-between">
                 <div id="chat-title" class="font-semibold text-base" style="color:var(--text)">Contact</div>
                 <div class="flex items-center gap-4">
+                    <button id="call-btn" onclick="callClick()" title="Start a call" aria-label="Start or join a call"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg></button>
                     <button onclick="toggleChatSearch()" class="text-blue-500 text-lg" title="Search this conversation" aria-label="Search this conversation"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg></button>
                     <button onclick="showPanel('info')" class="text-blue-500 font-semibold text-lg" title="View details and change nickname" aria-label="View details and change nickname">ⓘ</button>
                 </div>
@@ -342,6 +406,7 @@
                 <span id="pin-text" class="truncate cursor-pointer" style="flex:1;min-width:0"></span>
                 <button id="unpin-btn" class="gif-icon-btn" onclick="unpinMessage()" title="Unpin" aria-label="Unpin">&times;</button>
             </div>
+            <div id="call-banner"><span class="live-dot"></span><span class="cb-text" id="call-banner-text"></span><button id="call-banner-btn" onclick="callClick()">Join</button></div>
             <div id="message-container" class="flex-1 px-8 py-4 overflow-y-auto flex flex-col gap-1"></div>
             <div id="typing-indicator"></div>
             <div id="reply-bar" class="hidden px-6 py-2 border-t flex items-center justify-between gap-3 text-sm">
@@ -388,6 +453,30 @@
                 <div id="emoji-body"></div>
             </div>
             <div id="emoji-suggest" class="hidden"></div>
+        </div>
+
+        <!-- Call view -->
+        <div id="call-view">
+            <div id="call-head">
+                <button onclick="showCallView(false)">&lsaquo; Chat</button>
+                <span id="call-title"></span>
+                <span id="call-count"></span>
+            </div>
+            <div id="call-stage"><div id="call-grid"></div></div>
+            <div id="call-controls">
+                <button id="ctl-mic" class="call-ctl" onclick="toggleMic()" title="Mute / unmute" aria-label="Mute or unmute microphone">
+                    <svg viewBox="0 0 24 24"><path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2z"/><path class="slash" d="M3.5 3.5l17 17" stroke="#ed4245" stroke-width="2.4" stroke-linecap="round" fill="none"/></svg>
+                </button>
+                <button id="ctl-cam" class="call-ctl" onclick="toggleCam()" title="Turn camera on / off" aria-label="Turn camera on or off">
+                    <svg viewBox="0 0 24 24"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg>
+                </button>
+                <button id="ctl-scr" class="call-ctl" onclick="toggleScreen()" title="Share your screen" aria-label="Share your screen">
+                    <svg viewBox="0 0 24 24"><path d="M20 18c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2H0v2h24v-2h-4zM4 6h16v10H4V6z"/></svg>
+                </button>
+                <button class="call-ctl end" onclick="leaveCall()" title="Leave call" aria-label="Leave call">
+                    <svg viewBox="0 0 24 24"><path d="M12 9c-1.6 0-3.15.25-4.6.72v3.1c0 .39-.23.74-.56.9-.98.49-1.87 1.12-2.66 1.85-.18.18-.43.28-.7.28-.28 0-.53-.11-.71-.29L.29 13.08a.956.956 0 0 1-.29-.7c0-.28.11-.53.29-.71C3.34 8.78 7.46 7 12 7s8.66 1.78 11.71 4.67c.18.18.29.43.29.71 0 .28-.11.53-.29.71l-2.48 2.48c-.18.18-.43.29-.71.29-.27 0-.52-.11-.7-.28a11.27 11.27 0 0 0-2.67-1.85.996.996 0 0 1-.56-.9v-3.1C15.15 9.25 13.6 9 12 9z"/></svg>
+                </button>
+            </div>
         </div>
 
         <!-- Info / Details view -->
@@ -517,6 +606,10 @@
                         <h3 class="font-bold text-blue-500">20. Mod Tools</h3>
                         <p class="text-gray-600 text-sm">Owners and Admins can Mute a member for a number of minutes (they cannot send while muted) and see the AutoMod Log of blocked messages in the group details.</p>
                     </section>
+                    <section>
+                        <h3 class="font-bold text-blue-500">21. Calls &amp; Webcam</h3>
+                        <p class="text-gray-600 text-sm">Click the phone icon in any chat header to start a voice call, in private chats and groups alike. The other person (or everyone in the group) sees a ringing banner and a &#128222; next to the chat; click the green button to join. Inside a call use the buttons at the bottom to mute your microphone, turn your webcam on or off, share your screen, or leave. People with their camera off show as a letter circle, and a green outline appears around whoever is talking. While in a call you can go back to your chats and use Open call or Leave at the bottom of the sidebar. Calls connect directly between browsers, so they work best with up to about 8 people. Your browser asks for microphone and camera permission, and this needs https or localhost.</p>
+                    </section>
                 </div>
                 <button onclick="showPanel('empty')" class="mt-10 w-full bg-blue-500 text-white py-3 rounded-xl font-bold">Got it</button>
             </div>
@@ -527,7 +620,7 @@
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getDatabase, ref, push, onValue, query, limitToLast, remove, get, set, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+    import { getDatabase, ref, push, onValue, query, limitToLast, remove, get, set, update, onDisconnect, onChildAdded } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
     import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
     const firebaseConfig = {
@@ -680,7 +773,7 @@
         });
         rawActiveChats = next;
         syncSubscriptions();
-        syncJoinWatchers();
+        syncJoinWatchers(); syncCallWatchers();
         filterChats();
         updateTitle();
     }
@@ -760,11 +853,11 @@
                 const div = document.createElement('div');
                 div.className = "convo-row p-4 border-b flex items-center justify-between cursor-pointer transition-colors" + (chat.id === activeTarget ? " active-row" : "");
                 div.id = "row-" + chat.id;
-                div.onclick = () => { markAsRead(chat.id); openChat(chat.id, chat.isGroup); };
+                div.onclick = () => { showCallView(false); markAsRead(chat.id); openChat(chat.id, chat.isGroup); };
                 div.innerHTML = `
                     <div class="flex items-center gap-3">
                         <div class="w-12 h-12 ${chat.isGroup ? 'bg-blue-500' : 'bg-gray-300'} rounded-full flex items-center justify-center text-white font-bold text-xl">${esc((name[0] || '?').toUpperCase())}</div>
-                        <div><div class="font-bold text-lg" style="color:var(--text)">${esc(name)}${pinnedChats.has(chat.id) ? " \u{1F4CC}" : ""}${mutedChats.has(chat.id) ? " \u{1F515}" : ""}</div><p class="text-xs" style="color:var(--text-muted)">${chat.isGroup ? 'Group Chat' : 'Message'}</p></div>
+                        <div><div class="font-bold text-lg" style="color:var(--text)">${esc(name)}${pinnedChats.has(chat.id) ? " \u{1F4CC}" : ""}${mutedChats.has(chat.id) ? " \u{1F515}" : ""}</div><p class="text-xs" style="color:var(--text-muted)">${callCount(chat.id) ? '<span style="color:#34c759;font-weight:600">\u{1F4DE} Call in progress · ' + callCount(chat.id) + ' in call</span>' : (chat.isGroup ? 'Group Chat' : 'Message')}</p></div>
                     </div>
                     <div id="dot-${esc(chat.id)}" class="${unread ? '' : 'hidden '}min-w-5 h-5 px-1 ${mutedChats.has(chat.id) ? 'bg-gray-400' : 'bg-blue-600'} text-white text-[10px] font-bold rounded-full flex items-center justify-center">${unread > 99 ? '99+' : unread}</div>
                 `;
@@ -2788,6 +2881,456 @@
         try { await update(ref(db), updates); } catch (e) { console.error(e); alert('Could not delete the group. Check your connection and Firebase permissions.'); }
         filterChats();
     };
+
+    // ================= Calls: WebRTC audio/video, signaled through Firebase =================
+    // Firebase paths used: calls/<convo>/participants/<id>  (who is in the call + mic/cam state)
+    //                      signals/<convo>/<id>/<pushId>    (offers, answers and ICE candidates for <id>)
+    const RTC_CFG = { iceServers: [{ urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] }] };
+    const CALL_MAX = 8;
+    let call = null;                 // the call I am in, if any
+    let callJoining = false;
+    const callState = {};            // chat id -> participants of the call happening there (for ringing)
+    const callWatch = new Map();     // chat id -> { unsub, cid }
+    const ringDismissed = new Set();
+    let ringTimer = null, ringPick = null, acx = null;
+
+    const cidFor = (chatId) => chatId.startsWith('GROUP_') ? chatId : [myID, chatId].sort().join('_');
+    const chatLabel = (chatId) => { const c = rawActiveChats.find(x => x.id === chatId); return c ? displayName(c) : (contacts[chatId] || chatId); };
+    const camErrorText = (e) => {
+        const n = e && e.name;
+        if (n === 'NotAllowedError' || n === 'SecurityError') return 'Camera access is blocked. Click the lock icon in the address bar, allow the camera for this page, then try again.';
+        if (n === 'NotFoundError' || n === 'OverconstrainedError') return 'No camera was found.';
+        if (n === 'NotReadableError' || n === 'AbortError') return 'The camera is busy or unavailable. Close other apps that use it and try again.';
+        return 'Could not start the camera' + (n ? ` (${n})` : '') + '.';
+    };
+
+    // ---- watch every chat for calls, so incoming calls ring ----
+    function syncCallWatchers() {
+        const wanted = new Map(rawActiveChats.filter(c => c.isGroup || !blocked.has(c.id)).map(c => [c.id, cidFor(c.id)]));
+        for (const [id, w] of callWatch) {
+            if (!wanted.has(id) || w.cid !== wanted.get(id)) { w.unsub(); callWatch.delete(id); delete callState[id]; }
+        }
+        wanted.forEach((cid, id) => {
+            if (callWatch.has(id)) return;
+            const unsub = onValue(ref(db, `calls/${cid}/participants`), (s) => {
+                callState[id] = s.val() || {};
+                updateRing(); refreshCallBtn(); scheduleListUpdate();
+            }, () => {});
+            callWatch.set(id, { unsub, cid });
+        });
+        updateRing();
+    }
+
+    function callCount(id) { const p = callState[id]; return p ? Object.keys(p).filter(k => !blocked.has(k)).length : 0; }
+    function renderCallBanner() {
+        const el = document.getElementById('call-banner');
+        if (!el) return;
+        const ids = activeTarget ? Object.keys(callState[activeTarget] || {}).filter(k => !blocked.has(k)) : [];
+        if (!ids.length) return el.classList.remove('open');
+        const inThis = !!call && call.chatId === activeTarget;
+        const names = ids.map(nameOf);
+        const shown = names.length > 3 ? names.slice(0, 3).join(', ') + ` +${names.length - 3}` : names.join(', ');
+        document.getElementById('call-banner-text').textContent = `Call in progress \u00b7 ${shown} ${ids.length === 1 && !inThis ? 'is' : 'in'} the call`;
+        document.getElementById('call-banner-btn').textContent = inThis ? 'Return to call' : 'Join call';
+        el.classList.add('open');
+    }
+    function refreshCallBtn() {
+        renderCallBanner();
+        const b = document.getElementById('call-btn');
+        if (!b) return;
+        const live = !!(callState[activeTarget] && Object.keys(callState[activeTarget]).length);
+        const inThis = !!call && call.chatId === activeTarget;
+        b.style.color = (inThis || live) ? '#34c759' : '';
+        b.title = inThis ? 'Return to call' : live ? 'Join call' : 'Start a call';
+    }
+
+    // ---- ringing ----
+    function updateRing() {
+        const el = document.getElementById('ring-banner');
+        let pick = null;
+        if (!call) {
+            for (const [id, parts] of Object.entries(callState)) {
+                const ids = Object.keys(parts || {}).filter(k => !blocked.has(k));
+                if (!ids.length || ids.includes(myID) || mutedChats.has(id)) continue;
+                const key = id + '|' + Math.min(...ids.map(k => (parts[k] && parts[k].ts) || 0));
+                if (ringDismissed.has(key)) continue;
+                pick = { id, key, n: ids.length };
+                break;
+            }
+        }
+        ringPick = pick;
+        el.classList.toggle('open', !!pick);
+        if (pick) {
+            const isGroup = pick.id.startsWith('GROUP_');
+            document.getElementById('ring-title').textContent = isGroup ? chatLabel(pick.id) : `${chatLabel(pick.id)} is calling`;
+            document.getElementById('ring-sub').textContent = isGroup ? `Call in progress · ${pick.n} in call` : 'Incoming call';
+            if (!ringTimer) {
+                const ding = () => { const a = document.getElementById('ping-sound'); try { a.currentTime = 0; a.play().catch(() => {}); } catch (e) {} };
+                ding(); ringTimer = setInterval(ding, 2500);
+            }
+        } else if (ringTimer) { clearInterval(ringTimer); ringTimer = null; }
+    }
+    window.acceptRing = async () => {
+        if (!ringPick) return;
+        const id = ringPick.id;
+        const g = id.startsWith('GROUP_');
+        openChat(id, g);
+        await joinCall(id);
+    };
+    window.declineRing = () => { if (ringPick) { ringDismissed.add(ringPick.key); updateRing(); } };
+
+    // ---- starting / joining ----
+    window.callClick = () => {
+        if (!activeTarget) return;
+        if (call && call.chatId === activeTarget) return showCallView(true);
+        joinCall(activeTarget);
+    };
+
+    window.joinCall = async (chatId) => {
+        if (callJoining) return;
+        if (call) {
+            if (call.chatId === chatId) return showCallView(true);
+            if (!confirm('Leave your current call and join this one?')) return;
+            await leaveCall();
+        }
+        const isGroup = chatId.startsWith('GROUP_');
+        const cid = cidFor(chatId);
+        if (!isGroup && blocked.has(chatId)) return alert('You blocked this user. Unblock them to call.');
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.RTCPeerConnection) {
+            return alert('Calls need a browser with WebRTC support and a secure page (https or localhost).');
+        }
+        callJoining = true;
+        let stream = null;
+        try {
+            try { stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } }); }
+            catch (e) { return alert(voiceErrorText(e)); }
+            stopVoice();
+            let existing = {};
+            try { existing = (await get(ref(db, `calls/${cid}/participants`))).val() || {}; }
+            catch (e) { stream.getTracks().forEach(t => t.stop()); return alert('Could not reach the call server. Check your connection and your Firebase rules for "calls" and "signals".'); }
+            const others = Object.keys(existing).filter(k => k !== myID);
+            if (others.length >= CALL_MAX) { stream.getTracks().forEach(t => t.stop()); return alert(`This call is full (${CALL_MAX} people).`); }
+
+            const c = {
+                chatId, cid, isGroup, jts: nowTs(), local: stream, audioTrack: stream.getAudioTracks()[0],
+                vTrack: null, vKind: null, vBusy: false, peers: new Map(), parts: {}, tiles: new Map(),
+                speak: new Map(), unsubs: [], chain: Promise.resolve(), speakTimer: null
+            };
+            call = c;
+            const meRef = ref(db, `calls/${cid}/participants/${myID}`);
+            try {
+                await remove(ref(db, `signals/${cid}/${myID}`)).catch(() => {});
+                await set(meRef, curState(c));
+                onDisconnect(meRef).remove();
+            } catch (e) {
+                console.error(e);
+                call = null; stream.getTracks().forEach(t => t.stop());
+                return alert('Could not start the call. Check your connection and that your Firebase rules allow the "calls" and "signals" paths.');
+            }
+            if (!isGroup) touchPrivateChat(chatId);   // makes sure the other person has this chat, so their phone rings
+            if (!others.length) push(ref(db, `chats/${cid}`), { sender: 'SYSTEM', content: '\u{1F4DE} A call was started', type: 'system', ts: nowTs() }).catch(() => {});
+
+            c.unsubs.push(onChildAdded(ref(db, `signals/${cid}/${myID}`), handleSignal));
+            c.unsubs.push(onValue(ref(db, `calls/${cid}/participants`), (s) => onCallParts(s.val() || {})));
+            // after a dropped connection comes back, announce myself again
+            c.unsubs.push(onValue(ref(db, '.info/connected'), (s) => {
+                if (s.val() === true && call === c) { set(meRef, curState(c)).catch(() => {}); onDisconnect(meRef).remove(); }
+            }));
+            watchSpeaking(myID, new MediaStream([c.audioTrack]));
+            c.speakTimer = setInterval(speakTick, 150);
+            updateRing();
+            showCallView(true);
+            renderTiles();
+            refreshCallBtn();
+        } finally { callJoining = false; }
+    };
+
+    const curState = (c) => ({ ts: c.jts, mic: c.audioTrack.enabled, cam: c.vKind === 'cam', scr: c.vKind === 'scr' });
+    function pushState() { if (call) update(ref(db, `calls/${call.cid}/participants/${myID}`), { mic: call.audioTrack.enabled, cam: call.vKind === 'cam', scr: call.vKind === 'scr' }).catch(() => {}); }
+
+    // ---- who is in the call ----
+    function onCallParts(parts) {
+        if (!call) return;
+        call.parts = parts;
+        Object.keys(parts).forEach(id => {
+            if (id === myID || blocked.has(id)) return;
+            const p = parts[id];
+            const peer = call.peers.get(id);
+            if (peer && peer.jts !== p.ts) closePeer(id);          // they left and came back
+            if (!call.peers.has(id) && (p.ts || 0) < call.jts) startOffer(id, p.ts || 0);   // whoever joined later makes the offer
+        });
+        for (const id of [...call.peers.keys()]) if (!parts[id]) closePeer(id);
+        renderTiles();
+    }
+
+    function makePeer(id, jts) {
+        const c = call;
+        const pc = new RTCPeerConnection(RTC_CFG);
+        const peer = { id, pc, jts, remote: new MediaStream(), vSender: null, pending: [], ready: false, state: 'new' };
+        pc.onicecandidate = (e) => { if (e.candidate) sendSignal(id, 'ice', e.candidate.toJSON()); };
+        pc.ontrack = (e) => {
+            if (call !== c) return;
+            peer.remote.addTrack(e.track);
+            if (e.track.kind === 'audio') watchSpeaking(id, peer.remote);
+            e.track.onunmute = () => renderTiles();
+            renderTiles();
+        };
+        pc.onconnectionstatechange = () => {
+            peer.state = pc.connectionState;
+            if (pc.connectionState === 'failed') { try { pc.restartIce(); } catch (e) {} }
+            renderTiles();
+        };
+        c.peers.set(id, peer);
+        return peer;
+    }
+    function closePeer(id) {
+        if (!call) return;
+        const peer = call.peers.get(id);
+        if (peer) { try { peer.pc.close(); } catch (e) {} call.peers.delete(id); }
+        unwatchSpeaking(id);
+        const t = call.tiles.get(id);
+        if (t) t.video.srcObject = null;
+    }
+
+    async function attachLocal(peer, offerer) {
+        const pc = peer.pc;
+        if (offerer) {
+            pc.addTrack(call.audioTrack, call.local);
+            const t = pc.addTransceiver('video', { direction: 'sendrecv' });   // always there, so the camera can be switched on later without renegotiating
+            peer.vSender = t.sender;
+        } else {
+            const tr = pc.getTransceivers();
+            const a = tr.find(t => t.receiver.track && t.receiver.track.kind === 'audio');
+            const v = tr.find(t => t.receiver.track && t.receiver.track.kind === 'video');
+            if (a) { a.direction = 'sendrecv'; await a.sender.replaceTrack(call.audioTrack); }
+            if (v) { v.direction = 'sendrecv'; peer.vSender = v.sender; }
+        }
+        if (peer.vSender && call.vTrack) await peer.vSender.replaceTrack(call.vTrack);
+    }
+
+    async function startOffer(id, theirTs) {
+        const c = call;
+        const peer = makePeer(id, theirTs);
+        try {
+            await attachLocal(peer, true);
+            await peer.pc.setLocalDescription(await peer.pc.createOffer());
+            if (call === c) sendSignal(id, 'offer', peer.pc.localDescription.toJSON());
+        } catch (e) { console.warn('Offer failed', e); }
+    }
+
+    function sendSignal(to, type, data) {
+        if (!call) return;
+        push(ref(db, `signals/${call.cid}/${to}`), { from: myID, jts: call.jts, type, data: JSON.stringify(data), ts: Date.now() }).catch(() => {});
+    }
+    function handleSignal(snap) {
+        const m = snap.val();
+        remove(snap.ref).catch(() => {});
+        if (!m || !call) return;
+        const c = call;
+        c.chain = c.chain.then(() => processSignal(c, m)).catch(e => console.warn('Signal error', e));
+    }
+    async function flushIce(peer) {
+        while (peer.pending.length) { try { await peer.pc.addIceCandidate(peer.pending.shift()); } catch (e) {} }
+    }
+    async function processSignal(c, m) {
+        if (call !== c) return;
+        const id = m.from;
+        if (!id || id === myID || blocked.has(id)) return;
+        const known = c.parts[id];
+        if (known && (m.jts || 0) < (known.ts || 0)) return;   // left over from an older visit
+        let peer = c.peers.get(id);
+        if (peer && (m.jts || 0) > peer.jts) { closePeer(id); peer = null; }
+        let data; try { data = JSON.parse(m.data); } catch (e) { return; }
+        if (m.type === 'offer') {
+            if (peer) return;
+            peer = makePeer(id, m.jts || 0);
+            await peer.pc.setRemoteDescription(data);
+            peer.ready = true;
+            await flushIce(peer);
+            await attachLocal(peer, false);
+            await peer.pc.setLocalDescription(await peer.pc.createAnswer());
+            if (call === c) sendSignal(id, 'answer', peer.pc.localDescription.toJSON());
+        } else if (m.type === 'answer') {
+            if (!peer || peer.pc.signalingState !== 'have-local-offer') return;
+            await peer.pc.setRemoteDescription(data);
+            peer.ready = true;
+            await flushIce(peer);
+        } else if (m.type === 'ice') {
+            if (!peer) return;
+            if (peer.ready) { try { await peer.pc.addIceCandidate(data); } catch (e) {} } else peer.pending.push(data);
+        }
+    }
+
+    // ---- microphone, camera, screen ----
+    window.toggleMic = () => {
+        if (!call) return;
+        call.audioTrack.enabled = !call.audioTrack.enabled;
+        pushState(); renderTiles();
+    };
+    async function setVideo(kind) {   // 'cam' | 'scr' | null
+        const c = call;
+        if (!c || c.vBusy) return;
+        c.vBusy = true;
+        try {
+            let stream = null;
+            if (kind) {
+                try {
+                    stream = kind === 'cam'
+                        ? await navigator.mediaDevices.getUserMedia({ video: { width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30 } } })
+                        : await navigator.mediaDevices.getDisplayMedia({ video: true });
+                } catch (e) {
+                    if (kind === 'cam') alert(camErrorText(e));
+                    else if (e && e.name !== 'NotAllowedError') alert('Could not share your screen.');
+                    return;
+                }
+                if (call !== c) { stream.getTracks().forEach(t => t.stop()); return; }
+            }
+            if (c.vTrack) { c.vTrack.onended = null; c.vTrack.stop(); }
+            c.vTrack = stream ? stream.getVideoTracks()[0] : null;
+            c.vKind = stream ? kind : null;
+            if (c.vTrack) { const t = c.vTrack; t.onended = () => { if (call === c && c.vTrack === t) setVideo(null); }; }
+            await Promise.all([...c.peers.values()].filter(p => p.vSender).map(p => p.vSender.replaceTrack(c.vTrack).catch(() => {})));
+            pushState(); renderTiles();
+        } finally { c.vBusy = false; renderTiles(); }
+    }
+    window.toggleCam = () => { if (call) setVideo(call.vKind === 'cam' ? null : 'cam'); };
+    window.toggleScreen = () => {
+        if (!call) return;
+        if (!navigator.mediaDevices.getDisplayMedia) return alert('This browser cannot share the screen.');
+        setVideo(call.vKind === 'scr' ? null : 'scr');
+    };
+
+    // ---- speaking detection (green outline) ----
+    function watchSpeaking(id, stream) {
+        if (!call) return;
+        try {
+            if (!acx) acx = new (window.AudioContext || window.webkitAudioContext)();
+            if (acx.state === 'suspended') acx.resume().catch(() => {});
+            unwatchSpeaking(id);
+            const an = acx.createAnalyser();
+            an.fftSize = 512;
+            const src = acx.createMediaStreamSource(stream);
+            src.connect(an);
+            call.speak.set(id, { an, src, buf: new Uint8Array(an.fftSize) });
+        } catch (e) {}
+    }
+    function unwatchSpeaking(id) {
+        if (!call) return;
+        const w = call.speak.get(id);
+        if (w) { try { w.src.disconnect(); } catch (e) {} call.speak.delete(id); }
+        const t = call.tiles.get(id);
+        if (t) t.el.classList.remove('speaking');
+    }
+    function speakTick() {
+        if (!call) return;
+        call.speak.forEach((w, id) => {
+            let lvl = 0;
+            if (!(id === myID && !call.audioTrack.enabled) && !(id !== myID && call.parts[id] && call.parts[id].mic === false)) {
+                w.an.getByteTimeDomainData(w.buf);
+                for (let i = 0; i < w.buf.length; i++) lvl = Math.max(lvl, Math.abs(w.buf[i] - 128));
+                lvl /= 128;
+            }
+            const t = call.tiles.get(id);
+            if (t) t.el.classList.toggle('speaking', lvl > 0.05);
+        });
+    }
+
+    // ---- drawing the call ----
+    function makeTile(id) {
+        const el = document.createElement('div');
+        el.className = 'call-tile';
+        const video = document.createElement('video');
+        video.autoplay = true; video.playsInline = true;
+        if (id === myID) video.muted = true;
+        video.style.display = 'none';
+        const av = document.createElement('div');
+        av.className = 'call-av';
+        let h = 0; for (const ch of id) h = (h * 31 + ch.charCodeAt(0)) % 360;
+        av.style.background = `hsl(${h} 45% 45%)`;
+        const label = document.createElement('div');
+        label.className = 'call-label';
+        const mic = document.createElement('span');
+        mic.className = 'muted-ic'; mic.textContent = '\u{1F507}';
+        const nm = document.createElement('span');
+        const st = document.createElement('small');
+        label.append(mic, nm, st);
+        el.append(video, av, label);
+        return { el, video, av, nm, st, track: null };
+    }
+    function renderTiles() {
+        if (!call) return;
+        const grid = document.getElementById('call-grid');
+        const ids = [myID, ...Object.keys(call.parts).filter(id => id !== myID && !blocked.has(id)).sort()];
+        ids.forEach(id => { if (!call.tiles.has(id)) call.tiles.set(id, makeTile(id)); });
+        for (const [id, t] of call.tiles) if (!ids.includes(id)) { t.video.srcObject = null; t.el.remove(); call.tiles.delete(id); }
+        ids.forEach(id => {
+            const t = call.tiles.get(id);
+            const me = id === myID;
+            const p = me ? { mic: call.audioTrack.enabled, cam: call.vKind === 'cam', scr: call.vKind === 'scr' } : (call.parts[id] || {});
+            const showVideo = me ? !!call.vTrack : !!(p.cam || p.scr);
+            if (me) {
+                if (t.track !== call.vTrack) { t.track = call.vTrack; t.video.srcObject = call.vTrack ? new MediaStream([call.vTrack]) : null; }
+            } else {
+                const peer = call.peers.get(id);
+                if (peer && t.video.srcObject !== peer.remote) t.video.srcObject = peer.remote;
+                if (t.video.paused) t.video.play().catch(() => {});
+            }
+            t.video.style.display = showVideo ? 'block' : 'none';
+            t.video.style.objectFit = p.scr ? 'contain' : 'cover';
+            t.video.style.transform = (me && p.cam) ? 'scaleX(-1)' : 'none';
+            t.av.style.display = showVideo ? 'none' : 'flex';
+            t.av.textContent = (nameOf(id)[0] || '?').toUpperCase();
+            t.nm.textContent = nameOf(id) + (p.scr ? ' (screen)' : '');
+            const peer = call.peers.get(id);
+            t.st.textContent = (!me && (!peer || (peer.state !== 'connected' && peer.state !== 'completed'))) ? 'connecting…' : '';
+            t.el.classList.toggle('is-muted', p.mic === false);
+            grid.appendChild(t.el);
+        });
+        const n = ids.length;
+        const cols = n <= 1 ? 1 : n <= 4 ? 2 : n <= 9 ? 3 : 4;
+        grid.style.gridTemplateColumns = `repeat(${cols}, minmax(0, 1fr))`;
+        grid.style.maxWidth = (cols * 560) + 'px';
+        document.getElementById('call-count').textContent = `${n} in call`;
+        document.getElementById('call-title').textContent = chatLabel(call.chatId);
+        document.getElementById('call-bar-name').textContent = chatLabel(call.chatId);
+        document.getElementById('ctl-mic').classList.toggle('active', !call.audioTrack.enabled);
+        document.getElementById('ctl-cam').classList.toggle('active', call.vKind === 'cam');
+        document.getElementById('ctl-scr').classList.toggle('active', call.vKind === 'scr');
+    }
+    window.showCallView = (show = true) => {
+        document.getElementById('call-view').classList.toggle('open', !!show && !!call);
+        document.getElementById('call-bar').classList.toggle('open', !!call);
+        if (call) renderTiles();
+        refreshCallBtn();
+    };
+
+    window.leaveCall = async () => {
+        const c = call;
+        if (!c) return;
+        call = null;
+        clearInterval(c.speakTimer);
+        c.unsubs.forEach(u => { try { u(); } catch (e) {} });
+        c.peers.forEach(p => { try { p.pc.close(); } catch (e) {} });
+        c.speak.forEach(w => { try { w.src.disconnect(); } catch (e) {} });
+        try { c.local.getTracks().forEach(t => t.stop()); } catch (e) {}
+        if (c.vTrack) { c.vTrack.onended = null; c.vTrack.stop(); }
+        c.tiles.forEach(t => { t.video.srcObject = null; });
+        document.getElementById('call-grid').replaceChildren();
+        document.getElementById('call-view').classList.remove('open');
+        document.getElementById('call-bar').classList.remove('open');
+        updateRing(); refreshCallBtn();
+        const meRef = ref(db, `calls/${c.cid}/participants/${myID}`);
+        try { await onDisconnect(meRef).cancel(); } catch (e) {}
+        try { await remove(meRef); } catch (e) {}
+        try { await remove(ref(db, `signals/${c.cid}/${myID}`)); } catch (e) {}
+    };
+
+    // keep the call button in step with whichever chat is open, and hide the call screen when switching chats
+    (() => {
+        const _open = window.openChat, _exit = window.exitChat;
+        window.openChat = (tid, isGroup) => { const was = activeTarget; if (tid !== was) showCallView(false); _open(tid, isGroup); refreshCallBtn(); };
+        window.exitChat = () => { _exit(); refreshCallBtn(); };
+    })();
 
     // Dark mode toggle
     const savedDark = localStorage.getItem('dark_mode') === 'true';
