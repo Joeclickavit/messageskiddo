@@ -2885,7 +2885,21 @@
     // ================= Calls: WebRTC audio/video, signaled through Firebase =================
     // Firebase paths used: calls/<convo>/participants/<id>  (who is in the call + mic/cam state)
     //                      signals/<convo>/<id>/<pushId>    (offers, answers and ICE candidates for <id>)
-    const RTC_CFG = { iceServers: [{ urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] }] };
+    // STUN only works when both people are on friendly networks. TURN relays the call when they are not
+    // (different home networks, phones, school/work Wi-Fi). For reliable calls, make a free account at
+    // metered.ca (Open Relay), copy your TURN username/credential into TURN_USER / TURN_PASS below.
+    const TURN_USER = 'abb62a7513894f04b032c6bd';
+    const TURN_PASS = 'H59zk0vWNvSMvNdL';
+    const RTC_CFG = {
+        iceCandidatePoolSize: 4,
+        iceServers: [
+            { urls: ['stun:stun.relay.metered.ca:80', 'stun:stun.l.google.com:19302'] },
+            { urls: 'turn:global.relay.metered.ca:80', username: TURN_USER, credential: TURN_PASS },
+            { urls: 'turn:global.relay.metered.ca:80?transport=tcp', username: TURN_USER, credential: TURN_PASS },
+            { urls: 'turn:global.relay.metered.ca:443', username: TURN_USER, credential: TURN_PASS },
+            { urls: 'turns:global.relay.metered.ca:443?transport=tcp', username: TURN_USER, credential: TURN_PASS }
+        ]
+    };
     const CALL_MAX = 8;
     let call = null;                 // the call I am in, if any
     let callJoining = false;
@@ -3077,9 +3091,11 @@
         };
         pc.onconnectionstatechange = () => {
             peer.state = pc.connectionState;
+            console.log('[call] connection with', id, pc.connectionState, '/ ice', pc.iceConnectionState);
             if (pc.connectionState === 'failed') { try { pc.restartIce(); } catch (e) {} }
             renderTiles();
         };
+        pc.oniceconnectionstatechange = () => { console.log('[call] ice with', id, pc.iceConnectionState); };
         c.peers.set(id, peer);
         return peer;
     }
