@@ -161,6 +161,10 @@
         #gif-body { flex: 1; min-height: 0; overflow-y: auto; padding: 10px; }
         .gif-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
         .gif-cell { position: relative; height: 110px; border-radius: 8px; overflow: hidden; cursor: pointer; background: var(--input-bg); border: none; padding: 0; }
+        .gif-star { position: absolute; top: 3px; right: 3px; z-index: 3; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; background: none; border: none; padding: 0; cursor: pointer; font-size: 22px; line-height: 1; color: rgba(255,255,255,.85); text-shadow: 0 0 3px rgba(0,0,0,.9), 0 1px 4px rgba(0,0,0,.7); opacity: .55; transition: opacity .12s, transform .12s; }
+        .gif-cell:hover .gif-star, .gif-star.on, .gif-star:focus-visible { opacity: 1; }
+        .gif-star:hover { transform: scale(1.2); }
+        .gif-star.on { color: #ffcc00; }
         .gif-cell img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
         .gif-cell:hover { outline: 2px solid var(--ios-blue); }
         .gif-label { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(0,0,0,.45); color: #fff; font-weight: 700; font-size: 13px; text-align: center; padding: 4px; text-shadow: 0 1px 3px rgba(0,0,0,.6); }
@@ -560,7 +564,7 @@
                     </section>
                     <section>
                         <h3 class="font-bold text-blue-500">9. GIFs</h3>
-                        <p class="text-gray-600 text-sm">Click the GIF button next to the message box to open the GIF picker. Browse the folders or type in the search box, then click a GIF to send it. Recently sent GIFs appear in a Recent folder. The app asks GitHub's API what is in a public GitHub repository (and remembers the list for a day) and delivers the files through jsDelivr, so a sent GIF is just a small link. If GitHub's free rate limit is reached, wait a while and try again.</p>
+                        <p class="text-gray-600 text-sm">Click the GIF button next to the message box to open the GIF picker. Browse the folders or type in the search box, then click a GIF to send it. Your 10 most recently sent GIFs appear in a Recent folder. Click the star in the corner of any GIF to favorite it; favorites collect in a Favorites folder (click the star again to remove one). GIFs are loaded from two libraries and merged: the main one plus the extra one (Joeclickavit/gifsextra, folders only). The app asks GitHub's API what is in a public GitHub repository (and remembers the list for a day) and delivers the files through jsDelivr, so a sent GIF is just a small link. If GitHub's free rate limit is reached, wait a while and try again.</p>
                     </section>
                     <section>
                         <h3 class="font-bold text-blue-500">10. Voice Messages</h3>
@@ -1469,17 +1473,33 @@
         { owner: 'ColemanGariety', repo: 'gifs', branch: null },
         { owner: 'ivorisoutdoors', repo: 'gifs', branch: null },
     ];
+    // Extra libraries that are always loaded in addition to the one above.
+    // foldersOnly: true = only GIFs inside folders are used; GIFs sitting loose in the repo's root are ignored.
+    const GIF_EXTRA_SOURCES = [
+        { owner: 'Joeclickavit', repo: 'gifsextra', branch: null, foldersOnly: true },
+    ];
+    const GIF_RECENT_MAX = 10;
     const GIF_MAX_BYTES = 8 * 1024 * 1024;
     const GIF_PAGE = 24;
     let gifIndex = null, gifLoading = null, gifLastError = null, gifFolder = null, gifQuery = '', gifShown = 0, gifResults = [], gifSearchTimer = null;
 
     const gifUrl = (src, branch, path) => `https://cdn.jsdelivr.net/gh/${src.owner}/${src.repo}@${encodeURIComponent(branch)}/${path.split('/').map(encodeURIComponent).join('/')}`;
     const prettyName = (s) => s.replace(/\.gif$/i, '').replace(/[-_]+/g, ' ').trim();
-    const getRecentGifs = () => { try { return JSON.parse(localStorage.getItem('gif_recent') || '[]'); } catch (e) { return []; } };
+    const getRecentGifs = () => { try { return JSON.parse(localStorage.getItem('gif_recent') || '[]').slice(0, GIF_RECENT_MAX); } catch (e) { return []; } };
     function rememberGif(url, name) {
         const list = getRecentGifs().filter(g => g.url !== url);
         list.unshift({ url, name });
-        try { localStorage.setItem('gif_recent', JSON.stringify(list.slice(0, 24))); } catch (e) {}
+        try { localStorage.setItem('gif_recent', JSON.stringify(list.slice(0, GIF_RECENT_MAX))); } catch (e) {}
+    }
+    // Favorites: click the star on any GIF to add or remove it
+    const getFavGifs = () => { try { const v = JSON.parse(localStorage.getItem('gif_favs') || '[]'); return Array.isArray(v) ? v : []; } catch (e) { return []; } };
+    const isFavGif = (url) => getFavGifs().some(g => g.url === url);
+    function toggleFavGif(url, name) {
+        let list = getFavGifs();
+        if (list.some(g => g.url === url)) list = list.filter(g => g.url !== url);
+        else list.unshift({ url, name });
+        try { localStorage.setItem('gif_favs', JSON.stringify(list)); } catch (e) {}
+        return list.some(g => g.url === url);
     }
 
     async function ghApi(url) {
@@ -1497,48 +1517,70 @@
         return res.json();
     }
 
-    // Returns { src, branch, files } for the first library that has GIFs
+    // Finds the GIFs in one library. Returns { src, branch, files }
+    async function fetchOneSource(src) {
+        const name = `${src.owner}/${src.repo}`;
+        const branches = [];
+        if (src.branch) branches.push(src.branch);
+        else branches.push((await ghApi(`https://api.github.com/repos/${name}`)).default_branch);
+        ['gh-pages', 'main', 'master'].forEach(b => { if (!branches.includes(b)) branches.push(b); });
+        for (const branch of branches) {
+            let data;
+            try { data = await ghApi(`https://api.github.com/repos/${name}/git/trees/${encodeURIComponent(branch)}?recursive=1`); }
+            catch (e) { if (e.rateLimited) throw e; continue; }
+            const files = (data.tree || [])
+                .filter(e => e.type === 'blob' && /\.gif$/i.test(e.path) && (e.size || 0) <= GIF_MAX_BYTES && (!src.foldersOnly || e.path.includes('/')))
+                .map(e => [e.path, e.size || 0]);
+            if (files.length) return { src, branch, files };
+        }
+        const err = new Error('no GIFs found');
+        err.status = 'none';
+        throw err;
+    }
+
+    // Returns [ { src, branch, files }, ... ]: the first main library that has GIFs, plus every extra library that loads
     async function fetchGifFiles() {
         const tried = [];
+        const sets = [];
         for (const src of GIF_SOURCES) {
             const name = `${src.owner}/${src.repo}`;
-            try {
-                const branches = [];
-                if (src.branch) branches.push(src.branch);
-                else branches.push((await ghApi(`https://api.github.com/repos/${name}`)).default_branch);
-                ['gh-pages', 'main', 'master'].forEach(b => { if (!branches.includes(b)) branches.push(b); });
-                for (const branch of branches) {
-                    let data;
-                    try { data = await ghApi(`https://api.github.com/repos/${name}/git/trees/${encodeURIComponent(branch)}?recursive=1`); }
-                    catch (e) { if (e.rateLimited) throw e; continue; }
-                    const files = (data.tree || [])
-                        .filter(e => e.type === 'blob' && /\.gif$/i.test(e.path) && (e.size || 0) <= GIF_MAX_BYTES)
-                        .map(e => [e.path, e.size || 0]);
-                    if (files.length) return { src, branch, files };
-                }
-                tried.push(`${name} (no GIFs found)`);
-            } catch (e) {
+            try { sets.push(await fetchOneSource(src)); break; }
+            catch (e) {
                 if (e.rateLimited) throw e;
                 tried.push(`${name} (${e.status === 404 ? 'not found' : e.message})`);
             }
         }
-        throw new Error(`Couldn't load GIFs. Tried: ${tried.join(', ')}. Check GIF_SOURCES in the script.`);
+        for (const src of GIF_EXTRA_SOURCES) {
+            try { sets.push(await fetchOneSource(src)); }
+            catch (e) { console.warn(`Extra GIF library ${src.owner}/${src.repo} not loaded:`, e.message); if (e.rateLimited && sets.length) break; }
+        }
+        if (!sets.length) throw new Error(`Couldn't load GIFs. Tried: ${tried.join(', ')}. Check GIF_SOURCES in the script.`);
+        return sets;
     }
 
-    function buildGifIndex(src, branch, files) {
+    // Folders with the same name in different libraries are merged into one folder
+    function buildGifIndex(sets) {
         const folders = new Map();
         const all = [];
-        files.forEach(([path, size]) => {
-            const parts = path.split('/');
-            if (parts.slice(0, -1).some(p => p.startsWith('.') || p === 'node_modules')) return; // skip config folders
-            const folder = parts.length > 1 ? parts[0] : 'other';
-            const item = { url: gifUrl(src, branch, path), name: prettyName(parts[parts.length - 1]), size, search: path.toLowerCase() };
-            all.push(item);
-            if (!folders.has(folder)) folders.set(folder, []);
-            folders.get(folder).push(item);
+        const seen = new Set();
+        sets.forEach(({ src, branch, files }) => {
+            files.forEach(([path, size]) => {
+                const parts = path.split('/');
+                if (src.foldersOnly && parts.length < 2) return;   // ignore GIFs loose in the root
+                if (parts.slice(0, -1).some(p => p.startsWith('.') || p === 'node_modules')) return; // skip config folders
+                const folder = parts.length > 1 ? parts[0] : 'other';
+                const url = gifUrl(src, branch, path);
+                if (seen.has(url)) return;
+                seen.add(url);
+                const item = { url, name: prettyName(parts[parts.length - 1]), size, search: path.toLowerCase() };
+                all.push(item);
+                const key = folder.toLowerCase();
+                if (!folders.has(key)) folders.set(key, { name: folder, items: [] });
+                folders.get(key).items.push(item);
+            });
         });
-        const list = [...folders.entries()]
-            .map(([name, items]) => ({ name, label: prettyName(name) || name, items, cover: items.reduce((a, b) => (b.size < a.size ? b : a)) }))
+        const list = [...folders.values()]
+            .map(({ name, items }) => ({ name, label: prettyName(name) || name, items, cover: items.reduce((a, b) => (b.size < a.size ? b : a)) }))
             .sort((a, b) => a.label.localeCompare(b.label));
         return { folders: list, all };
     }
@@ -1548,21 +1590,21 @@
         if (gifLoading) return gifLoading;
         // Don't hammer GitHub's rate limit by retrying a failure on every click
         if (gifLastError && Date.now() - gifLastError.at < 60000) return Promise.reject(new Error(gifLastError.message));
-        const key = 'gif_index_v2_' + GIF_SOURCES.map(s => `${s.owner}/${s.repo}`).join(',');
+        const key = 'gif_index_v3_' + [...GIF_SOURCES, ...GIF_EXTRA_SOURCES].map(s => `${s.owner}/${s.repo}`).join(',');
         let cached = null;
         try { cached = JSON.parse(localStorage.getItem(key) || 'null'); } catch (e) { cached = null; }
-        if (cached && Date.now() - cached.at < 24 * 3600 * 1000) {
-            gifIndex = buildGifIndex(cached.src, cached.branch, cached.files);
+        if (cached && Array.isArray(cached.sets) && Date.now() - cached.at < 24 * 3600 * 1000) {
+            gifIndex = buildGifIndex(cached.sets);
             return Promise.resolve(gifIndex);
         }
         gifLoading = fetchGifFiles()
-            .then(({ src, branch, files }) => {
-                try { localStorage.setItem(key, JSON.stringify({ at: Date.now(), src, branch, files })); } catch (e) {}
-                gifIndex = buildGifIndex(src, branch, files);
+            .then((sets) => {
+                try { localStorage.setItem(key, JSON.stringify({ at: Date.now(), sets })); } catch (e) {}
+                gifIndex = buildGifIndex(sets);
                 return gifIndex;
             })
             .catch(err => {
-                if (cached) { gifIndex = buildGifIndex(cached.src, cached.branch, cached.files); return gifIndex; } // an old list beats nothing
+                if (cached && Array.isArray(cached.sets)) { gifIndex = buildGifIndex(cached.sets); return gifIndex; } // an old list beats nothing
                 gifLastError = { at: Date.now(), message: err.message };
                 throw err;
             })
@@ -1578,8 +1620,11 @@
     }
 
     function makeGifCell(item, label, count) {
-        const cell = document.createElement('button');
+        const cell = document.createElement('div');   // a div, because a star button lives inside it
         cell.className = 'gif-cell' + (label ? ' gif-tile' : '');
+        cell.tabIndex = 0;
+        cell.setAttribute('role', 'button');
+        cell.addEventListener('keydown', (e) => { if (e.target === cell && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); cell.click(); } });
         cell.title = label || item.name;
         const img = document.createElement('img');
         img.loading = 'lazy';
@@ -1597,6 +1642,24 @@
                 l.appendChild(s);
             }
             cell.appendChild(l);
+        } else {
+            const star = document.createElement('button');
+            star.type = 'button';
+            star.className = 'gif-star';
+            const paint = (on) => {
+                star.classList.toggle('on', on);
+                star.textContent = on ? '\u2605' : '\u2606';
+                star.title = on ? 'Remove from favorites' : 'Add to favorites';
+                star.setAttribute('aria-label', star.title);
+            };
+            paint(isFavGif(item.url));
+            star.onclick = (e) => {
+                e.stopPropagation();
+                const on = toggleFavGif(item.url, item.name);
+                paint(on);
+                if (!on && gifFolder === '__favs__' && !gifQuery) renderGifView();   // it leaves the Favorites folder right away
+            };
+            cell.appendChild(star);
         }
         return cell;
     }
@@ -1621,6 +1684,12 @@
         if (!gifQuery && !gifFolder) {            // category tiles
             const grid = document.createElement('div');
             grid.className = 'gif-grid';
+            const favs = getFavGifs();
+            if (favs.length) {
+                const t = makeGifCell(favs[0], '\u2605 Favorites', favs.length);
+                t.onclick = () => openGifFolder('__favs__');
+                grid.appendChild(t);
+            }
             const recent = getRecentGifs();
             if (recent.length) {
                 const t = makeGifCell(recent[0], 'Recent', recent.length);
@@ -1642,11 +1711,13 @@
             gifResults = gifIndex.all.filter(g => terms.every(t => g.search.includes(t)));
         } else if (gifFolder === '__recent__') {
             gifResults = getRecentGifs();
+        } else if (gifFolder === '__favs__') {
+            gifResults = getFavGifs();
         } else {
             const f = gifIndex.folders.find(x => x.name === gifFolder);
             gifResults = f ? f.items : [];
         }
-        if (!gifResults.length) return gifMessage(gifQuery ? 'No GIFs match that search.' : 'Nothing here yet.');
+        if (!gifResults.length) return gifMessage(gifQuery ? 'No GIFs match that search.' : gifFolder === '__favs__' ? 'No favorites yet. Click the star on a GIF to add it here.' : 'Nothing here yet.');
         const grid = document.createElement('div');
         grid.className = 'gif-grid';
         grid.id = 'gif-grid';
