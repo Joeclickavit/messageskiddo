@@ -493,7 +493,7 @@
             <div class="p-8 overflow-y-auto flex-1 max-w-md mx-auto w-full">
                 <div class="text-center mb-8">
                     <label id="edit-name-label" for="edit-name-input" class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Nickname</label>
-                    <input id="edit-name-input" type="text" class="text-2xl font-bold text-center border-b-2 outline-none w-full mb-4" placeholder="Enter nickname">
+                    <input id="edit-name-input" type="text" maxlength="60" class="text-2xl font-bold text-center border-b-2 outline-none w-full mb-4" placeholder="Enter nickname">
                     <button onclick="saveContactName()" class="bg-blue-500 text-white px-6 py-2 rounded-full w-full font-semibold">Save Nickname</button>
                 </div>
                 <div id="member-section" class="mb-8 hidden">
@@ -1132,7 +1132,7 @@
                 if (lastRender && lastRender.tid === tid) renderMessages(lastRender.snap, tid, true);
             });
         }
-        chatUnsub = onValue(ref(db, `chats/${currentConvoID}`), (snap) => {
+        chatUnsub = onValue(query(ref(db, `chats/${currentConvoID}`), limitToLast(100)), (snap) => {   // only the last 100 messages, so old media is never downloaded
             renderMessages(snap, tid, isGroup);
             markActiveReadIfViewing(tid, snap);
         });
@@ -1347,7 +1347,7 @@
         const n = document.getElementById('edit-name-input').value.trim();
         if(!n) return;
         if(activeTarget.startsWith("GROUP_")) {
-             { const g0 = liveGroup; if (!isGroupAdmin(g0)) return alert('Only the group owner or an Admin can rename the group.'); updateGroupMetadata(activeTarget, d => ({ ...d, name: n })); }
+             { const g0 = liveGroup; if (!isGroupAdmin(g0)) return alert('Only the group owner or an Admin can rename the group.'); if (n.length > 60) return alert('Group names can be at most 60 characters.'); updateGroupMetadata(activeTarget, d => ({ ...d, name: n })).catch(e => { console.error('Rename failed', e); alert('Could not rename the group: ' + (e && e.message ? e.message : e)); const g1 = liveGroup; if (g1 && g1.name) document.getElementById('chat-title').innerText = g1.name; }); }
         } else { 
             contacts[activeTarget] = n; 
             localStorage.setItem('contact_names', JSON.stringify(contacts)); 
@@ -1373,23 +1373,56 @@
         hideMention();
     };
 
-    window.uploadImage = (input) => {
+    // Photos are shrunk before sending: at most 1280px on the long side, re-saved as JPEG until the
+    // data is about 300 KB. This keeps every image far under the database's 1,600,000-character limit
+    // and keeps the Firebase download count low (images are re-downloaded each time a chat loads).
+    const IMG_MAX_CHARS = 400000;
+    const IMG_MAX_SIDE = 1280;
+    const readAsDataURL = (blob) => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = () => rej(r.error); r.readAsDataURL(blob); });
+    async function shrinkImage(file) {
+        let bmp;
+        try { bmp = await createImageBitmap(file); }
+        catch (e) {   // older browsers: fall back to an <img>
+            const url = URL.createObjectURL(file);
+            try {
+                bmp = await new Promise((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = () => rej(new Error('decode')); im.src = url; });
+            } finally { setTimeout(() => URL.revokeObjectURL(url), 5000); }
+        }
+        const sw = bmp.naturalWidth || bmp.width, sh = bmp.naturalHeight || bmp.height;
+        let scale = Math.min(1, IMG_MAX_SIDE / Math.max(sw, sh));
+        for (let attempt = 0; attempt < 8; attempt++) {
+            const canvas = document.createElement('canvas');
+            canvas.width = Math.max(1, Math.round(sw * scale));
+            canvas.height = Math.max(1, Math.round(sh * scale));
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#fff';                       // JPEG has no transparency
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(bmp, 0, 0, canvas.width, canvas.height);
+            for (const q of [0.82, 0.68, 0.54, 0.42]) {
+                const url = canvas.toDataURL('image/jpeg', q);
+                if (url.length <= IMG_MAX_CHARS) { if (bmp.close) bmp.close(); return url; }
+            }
+            scale *= 0.75;
+        }
+        if (bmp.close) bmp.close();
+        throw new Error('too big');
+    }
+
+    window.uploadImage = async (input) => {
         const file = input.files[0];
         input.value = ""; // reset so same file can be re-selected after error
-        if (!file) return;
-        if (file.size > 1 * 1024 * 1024) {
-            alert(`Image too large (${(file.size / 1024 / 1024).toFixed(1)} MB). Please choose an image under 1 MB.`);
-            return;
-        }
-        if (activeTarget && guardSend('')) {
-            const r = new FileReader();
-            r.onload = async (e) => {
-                touchPrivateChat();
-                try { await sendMessageWithStorageRecovery(currentConvoID, { sender: myID, content: e.target.result, type: 'image', ts: nowTs() }); }
-                catch (err) { console.error(err); }
-            };
-            r.readAsDataURL(file);
-        }
+        if (!file || !activeTarget || !guardSend('')) return;
+        const targetAtStart = activeTarget, convoAtStart = currentConvoID;
+        let dataUrl;
+        try {
+            if (file.type === 'image/gif') {   // animated GIFs can't be shrunk without losing the animation
+                if (file.size > 300 * 1024) return alert(`That GIF is ${(file.size / 1024).toFixed(0)} KB. GIFs over 300 KB can't be shrunk, so please use the GIF button instead or pick a smaller one.`);
+                dataUrl = await readAsDataURL(file);
+            } else dataUrl = await shrinkImage(file);
+        } catch (e) { console.error(e); return alert("Couldn't prepare that image. Try a different picture."); }
+        touchPrivateChat(targetAtStart);
+        try { await sendMessageWithStorageRecovery(convoAtStart, { sender: myID, content: dataUrl, type: 'image', ts: nowTs() }); }
+        catch (err) { console.error(err); }
     };
 
     // Makes sure a brand-new private chat shows up on both sides after the first message
@@ -3465,28 +3498,22 @@
             .finally(() => { if (btn) setTimeout(() => btn.classList.remove('spin'), 600); });
     };
 
-    // Auto refresh every 10 seconds: contact list + the open conversation (also refreshes Read/Seen labels)
+    // Every 15 seconds redraw the open conversation from data already loaded (refreshes Read/Seen labels; downloads nothing big)
     let autoRefreshing = false;
     async function autoRefresh() {
         if (autoRefreshing) return;
         autoRefreshing = true;
         try {
-            applyActiveChats(await get(ref(db, `users/${myID}/active_chats`)));
-            const tid = activeTarget, convo = currentConvoID, grp = activeIsGroup;
-            if (tid && convo) {
-                const snap = await get(ref(db, `chats/${convo}`));
-                if (tid === activeTarget) {
-                    renderMessages(snap, tid, grp);
-                    markActiveReadIfViewing(tid, snap);
-                }
-            }
+            // No more re-downloading chats: live listeners already deliver every change.
+            // This only redraws what is already on screen (refreshes Read/Seen labels, emojis, times).
+            if (activeTarget && lastRender && lastRender.tid === activeTarget) renderMessages(lastRender.snap, lastRender.tid, lastRender.isGroup);
         } catch (e) {
             console.warn('Auto-refresh failed', e);
         } finally {
             autoRefreshing = false;
         }
     }
-    setInterval(autoRefresh, 10000);
+    setInterval(autoRefresh, 15000);
 
     // Coming back to the tab counts as reading the open chat
     document.addEventListener('visibilitychange', () => {
