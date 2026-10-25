@@ -3209,7 +3209,7 @@
         if (peer) { try { peer.pc.close(); } catch (e) {} call.peers.delete(id); }
         unwatchSpeaking(id);
         const t = call.tiles.get(id);
-        if (t) t.video.srcObject = null;
+        if (t) { t.video.srcObject = null; t.audio.srcObject = null; }
     }
 
     async function attachLocal(peer, offerer) {
@@ -3374,15 +3374,18 @@
         const nm = document.createElement('span');
         const st = document.createElement('small');
         label.append(mic, nm, st);
-        el.append(video, av, label);
-        return { el, video, av, nm, st, track: null };
+        const audio = document.createElement('audio');   // remote sound plays here, so it works even while the video is hidden
+        audio.autoplay = true; audio.playsInline = true; audio.setAttribute('playsinline', '');
+        if (id === myID) audio.muted = true;
+        el.append(video, av, label, audio);
+        return { el, video, audio, av, nm, st, track: null };
     }
     function renderTiles() {
         if (!call) return;
         const grid = document.getElementById('call-grid');
         const ids = [myID, ...Object.keys(call.parts).filter(id => id !== myID && !blocked.has(id)).sort()];
         ids.forEach(id => { if (!call.tiles.has(id)) call.tiles.set(id, makeTile(id)); });
-        for (const [id, t] of call.tiles) if (!ids.includes(id)) { t.video.srcObject = null; t.el.remove(); call.tiles.delete(id); }
+        for (const [id, t] of call.tiles) if (!ids.includes(id)) { t.video.srcObject = null; t.audio.srcObject = null; t.el.remove(); call.tiles.delete(id); }
         ids.forEach(id => {
             const t = call.tiles.get(id);
             const me = id === myID;
@@ -3393,6 +3396,8 @@
             } else {
                 const peer = call.peers.get(id);
                 if (peer && t.video.srcObject !== peer.remote) t.video.srcObject = peer.remote;
+                if (peer && t.audio.srcObject !== peer.remote) t.audio.srcObject = peer.remote;
+                if (t.audio.paused && t.audio.srcObject) t.audio.play().catch(() => {});
                 if (t.video.paused) t.video.play().catch(() => {});
             }
             t.video.style.display = showVideo ? 'block' : 'none';
@@ -3417,6 +3422,11 @@
         document.getElementById('ctl-cam').classList.toggle('active', call.vKind === 'cam');
         document.getElementById('ctl-scr').classList.toggle('active', call.vKind === 'scr');
     }
+    document.addEventListener('click', () => {
+        if (!call) return;
+        try { if (acx && acx.state === 'suspended') acx.resume(); } catch (e) {}
+        call.tiles.forEach(t => { if (t.audio && t.audio.srcObject && t.audio.paused) t.audio.play().catch(() => {}); });
+    });
     window.showCallView = (show = true) => {
         document.getElementById('call-view').classList.toggle('open', !!show && !!call);
         document.getElementById('call-bar').classList.toggle('open', !!call);
@@ -3434,7 +3444,7 @@
         c.speak.forEach(w => { try { w.src.disconnect(); } catch (e) {} });
         try { c.local.getTracks().forEach(t => t.stop()); } catch (e) {}
         if (c.vTrack) { c.vTrack.onended = null; c.vTrack.stop(); }
-        c.tiles.forEach(t => { t.video.srcObject = null; });
+        c.tiles.forEach(t => { t.video.srcObject = null; t.audio.srcObject = null; });
         document.getElementById('call-grid').replaceChildren();
         document.getElementById('call-view').classList.remove('open');
         document.getElementById('call-bar').classList.remove('open');
