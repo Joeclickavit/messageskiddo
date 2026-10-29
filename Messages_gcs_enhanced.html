@@ -213,6 +213,15 @@
         .sug-row.on, .sug-row:hover { background: var(--row-active); }
         .sug-row img { width: 24px; height: 24px; object-fit: contain; flex-shrink: 0; }
 
+        /* Downloadable file cards */
+        .file-card { display: flex; align-items: center; gap: 10px; min-width: 200px; }
+        .file-card .file-ic { font-size: 26px; flex-shrink: 0; }
+        .file-card .file-meta { flex: 1; min-width: 0; }
+        .file-card .file-name { font-weight: 600; font-size: 14px; overflow-wrap: anywhere; }
+        .file-card .file-size { font-size: 11px; opacity: .75; }
+        .file-card .file-dl { border: none; border-radius: 8px; padding: 5px 10px; font-size: 12px; font-weight: 700; cursor: pointer; background: rgba(127,127,127,.3); color: inherit; flex-shrink: 0; }
+        .file-card .file-dl:hover { background: var(--ios-blue); color: #fff; }
+
         /* Links in messages */
         .bubble { overflow-wrap: anywhere; }
         .bubble a.msg-link { color: inherit; text-decoration: underline; word-break: break-all; cursor: pointer; }
@@ -421,6 +430,8 @@
             <div id="chat-input-bar" class="px-6 py-3 border-t flex items-center gap-3">
                 <button onclick="document.getElementById('file-picker').click()" class="text-gray-400 text-2xl">⊕</button>
                 <input type="file" id="file-picker" class="hidden" accept="image/*" onchange="uploadImage(this)">
+                <button id="html-btn" onclick="document.getElementById('html-picker').click()" class="hidden text-gray-400 text-xs font-bold" title="Send an HTML file" aria-label="Send an HTML file" style="border:1px solid var(--border);border-radius:6px;padding:3px 6px;flex-shrink:0">HTML</button>
+                <input type="file" id="html-picker" class="hidden" accept=".html,.htm,text/html" onchange="uploadHtmlFile(this)">
                 <input id="chat-input" type="text" placeholder="Message" class="flex-1 px-4 py-2 border rounded-full text-sm outline-none">
                 <button id="mic-btn" onclick="startVoice()" title="Record a voice message" aria-label="Record a voice message">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2z"/></svg>
@@ -915,7 +926,7 @@
             const isMe = msg.sender === myID;
             const isSys = msg.type === 'system';
             const isDel = msg.type === 'deleted';
-            const isTextual = !isSys && !isDel && msg.type !== 'image' && msg.type !== 'voice';
+            const isTextual = !isSys && !isDel && msg.type !== 'image' && msg.type !== 'voice' && msg.type !== 'file';
             const hiddenByMod = isGroup && isTextual && modRules.some(r => String(msg.content || '').toLowerCase().includes(r));
 
             const d = document.createElement('div');
@@ -958,6 +969,8 @@
                     b.appendChild(img);
                 } else if (msg.type === 'voice') {
                     b.appendChild(makeVoicePlayer(msg));
+                } else if (msg.type === 'file') {
+                    b.appendChild(makeFileCard(msg));
                 } else b.appendChild(richText(msg.content, msg.mt));
             }
             if (!isMe && !isSys && !isDel && Array.isArray(msg.mentions) && (msg.mentions.includes(myID) || msg.mentions.includes('everyone'))) b.classList.add('mention-me');
@@ -1425,6 +1438,48 @@
         try { await sendMessageWithStorageRecovery(convoAtStart, { sender: myID, content: dataUrl, type: 'image', ts: serverTimestamp() }); }
         catch (err) { console.error(err); }
     };
+
+    // ---- Downloadable HTML files (only one chat ID may send them; the database rules enforce it) ----
+    const FILE_SENDER_ID = '4WRO-L700';
+    const FILE_MAX_BYTES = 950 * 1024;   // base64 grows ~33%, so this stays under the 1,600,000-character message limit
+    const fmtBytes = (n) => n >= 1048576 ? (n / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(n / 1024)) + ' KB';
+    document.getElementById('html-btn').classList.toggle('hidden', myID !== FILE_SENDER_ID);
+
+    window.uploadHtmlFile = async (input) => {
+        const file = input.files[0];
+        input.value = "";
+        if (!file || !activeTarget || myID !== FILE_SENDER_ID || !guardSend('')) return;
+        if (!/\.html?$/i.test(file.name)) return alert('Please choose an .html file.');
+        if (file.size > FILE_MAX_BYTES) return alert(`That file is ${fmtBytes(file.size)}. The limit is ${fmtBytes(FILE_MAX_BYTES)}.`);
+        let dataUrl;
+        try { dataUrl = await readAsDataURL(file); } catch (e) { return alert('Could not read that file.'); }
+        const targetAtStart = activeTarget, convoAtStart = currentConvoID;
+        touchPrivateChat(targetAtStart);
+        try { await sendMessageWithStorageRecovery(convoAtStart, { sender: myID, content: dataUrl, type: 'file', name: file.name.slice(0, 100), size: file.size, ts: serverTimestamp() }); }
+        catch (e) { console.error(e); }
+    };
+
+    // Shown as a download card; the HTML is never run inside the chat
+    function makeFileCard(msg) {
+        const wrap = document.createElement('div');
+        wrap.className = 'file-card';
+        const ic = document.createElement('span'); ic.className = 'file-ic'; ic.textContent = '\u{1F4C4}';
+        const meta = document.createElement('div'); meta.className = 'file-meta';
+        const nm = document.createElement('div'); nm.className = 'file-name'; nm.textContent = msg.name || 'file.html';
+        const sz = document.createElement('div'); sz.className = 'file-size'; sz.textContent = msg.size ? fmtBytes(msg.size) : 'HTML file';
+        meta.append(nm, sz);
+        const btn = document.createElement('button');
+        btn.type = 'button'; btn.className = 'file-dl'; btn.textContent = 'Download';
+        btn.onclick = () => {
+            if (!confirm(`Download ${msg.name || 'this file'}?\n\nOnly open HTML files from people you trust.`)) return;
+            const a = document.createElement('a');
+            a.href = msg.content;
+            a.download = /\.html?$/i.test(msg.name || '') ? msg.name : (msg.name || 'file') + '.html';
+            document.body.appendChild(a); a.click(); a.remove();
+        };
+        wrap.append(ic, meta, btn);
+        return wrap;
+    }
 
     // Makes sure a brand-new private chat shows up on both sides after the first message
     function touchPrivateChat(target = activeTarget) {
@@ -2409,7 +2464,7 @@
     // ================= v12 features =================
     const REACTIONS = ['\u{1F44D}', '❤️', '\u{1F602}', '\u{1F62E}', '\u{1F622}', '\u{1F525}'];
     const nameOf = (id) => id === myID ? 'You' : (contacts[id] || id);
-    const snippetOf = (m) => m.type === 'image' ? '\u{1F4F7} Photo / GIF' : m.type === 'voice' ? '\u{1F3A4} Voice message' : String(m.content || '').replace(/\s+/g, ' ').slice(0, 100);
+    const snippetOf = (m) => m.type === 'file' ? '\u{1F4C4} ' + (m.name || 'File') : m.type === 'image' ? '\u{1F4F7} Photo / GIF' : m.type === 'voice' ? '\u{1F3A4} Voice message' : String(m.content || '').replace(/\s+/g, ' ').slice(0, 100);
     const isGroupAdmin = (g) => !!g && (g.owner === myID || !!(g.roles && g.roles[myID] === 'Admin'));
     const msgRef = (key) => ref(db, `chats/${currentConvoID}/${key}`);
     const canPin = () => !!activeTarget && (!activeTarget.startsWith('GROUP_') || isGroupAdmin(liveGroup));
