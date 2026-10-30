@@ -305,6 +305,16 @@
         .ring-btn.ok { background: #3ba55d; }
         .ring-btn.no { background: #ed4245; }
         @keyframes ringpulse { 50% { box-shadow: 0 0 0 4px rgba(59,165,93,.35), 0 10px 40px rgba(0,0,0,.35); } }
+        .call-tile .tile-full { position: absolute; top: 8px; right: 8px; z-index: 5; width: 32px; height: 32px; border: none; border-radius: 8px; background: rgba(0,0,0,.6); color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity .12s; }
+        .call-tile:hover .tile-full, .call-tile .tile-full:focus-visible { opacity: 1; }
+        .call-tile .tile-full:hover { background: var(--ios-blue); }
+        .call-tile .tile-full svg { width: 18px; height: 18px; fill: currentColor; }
+        .call-tile:fullscreen { aspect-ratio: auto; width: 100vw; height: 100vh; border-radius: 0; border: none; background: #000; }
+        .call-tile:-webkit-full-screen { aspect-ratio: auto; width: 100vw; height: 100vh; border-radius: 0; border: none; background: #000; }
+        #call-view:fullscreen { position: fixed; inset: 0; width: 100vw; height: 100vh; }
+        #call-view:-webkit-full-screen { width: 100vw; height: 100vh; }
+        #call-toast { position: absolute; left: 50%; bottom: 90px; transform: translateX(-50%); z-index: 6; max-width: min(520px, 90%); background: rgba(30,30,32,.95); color: #fff; font-size: 13px; padding: 10px 14px; border-radius: 10px; box-shadow: 0 6px 24px rgba(0,0,0,.5); display: none; text-align: center; }
+        #call-toast.open { display: block; }
         #call-banner { display: none; flex-shrink: 0; align-items: center; gap: 12px; padding: 8px 24px; background: #1f8a4c; color: #fff; font-size: 14px; }
         #call-banner.open { display: flex; }
         #call-banner .cb-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -478,6 +488,7 @@
                 <span id="call-count"></span>
             </div>
             <div id="call-stage"><div id="call-grid"></div></div>
+            <div id="call-toast"></div>
             <div id="call-controls">
                 <button id="ctl-mic" class="call-ctl" onclick="toggleMic()" title="Mute / unmute" aria-label="Mute or unmute microphone">
                     <svg viewBox="0 0 24 24"><path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2z"/><path class="slash" d="M3.5 3.5l17 17" stroke="#ed4245" stroke-width="2.4" stroke-linecap="round" fill="none"/></svg>
@@ -487,6 +498,9 @@
                 </button>
                 <button id="ctl-scr" class="call-ctl" onclick="toggleScreen()" title="Share your screen" aria-label="Share your screen">
                     <svg viewBox="0 0 24 24"><path d="M20 18c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2H0v2h24v-2h-4zM4 6h16v10H4V6z"/></svg>
+                </button>
+                <button id="ctl-full" class="call-ctl" onclick="toggleCallFullscreen()" title="Fullscreen" aria-label="Fullscreen">
+                    <svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
                 </button>
                 <button class="call-ctl end" onclick="leaveCall()" title="Leave call" aria-label="Leave call">
                     <svg viewBox="0 0 24 24"><path d="M12 9c-1.6 0-3.15.25-4.6.72v3.1c0 .39-.23.74-.56.9-.98.49-1.87 1.12-2.66 1.85-.18.18-.43.28-.7.28-.28 0-.53-.11-.71-.29L.29 13.08a.956.956 0 0 1-.29-.7c0-.28.11-.53.29-.71C3.34 8.78 7.46 7 12 7s8.66 1.78 11.71 4.67c.18.18.29.43.29.71 0 .28-.11.53-.29.71l-2.48 2.48c-.18.18-.43.29-.71.29-.27 0-.52-.11-.7-.28a11.27 11.27 0 0 0-2.67-1.85.996.996 0 0 1-.56-.9v-3.1C15.15 9.25 13.6 9 12 9z"/></svg>
@@ -624,6 +638,7 @@
                     <section>
                         <h3 class="font-bold text-blue-500">21. Calls &amp; Webcam</h3>
                         <p class="text-gray-600 text-sm">Click the phone icon in any chat header to start a voice call, in private chats and groups alike. The other person (or everyone in the group) sees a ringing banner and a &#128222; next to the chat; click the green button to join. Inside a call use the buttons at the bottom to mute your microphone, turn your webcam on or off, share your screen, or leave. People with their camera off show as a letter circle, and a green outline appears around whoever is talking. While in a call you can go back to your chats and use Open call or Leave at the bottom of the sidebar. Calls connect directly between browsers, so they work best with up to about 8 people. Your browser asks for microphone and camera permission, and this needs https or localhost.</p>
+                        <p class="text-gray-600 text-sm mt-2"><b>Sharing sound:</b> when you click the share-screen button, the browser's share window has a checkbox such as "Also share tab audio" or "Share system audio". Tick it and everyone in the call hears what your computer plays (for example a video) alongside your microphone. For the best result share a single browser tab; sharing your whole screen can also send other people's voices back to them as an echo, so wear headphones in that case. <b>Fullscreen:</b> use the fullscreen button in the call controls for the whole call, or the button in the corner of a person's tile (or double-click the tile) to make just that person or their shared screen fill the display. Press Esc to exit.</p>
                     </section>
                 </div>
                 <button onclick="showPanel('empty')" class="mt-10 w-full bg-blue-500 text-white py-3 rounded-xl font-bold">Got it</button>
@@ -3187,7 +3202,7 @@
 
             const c = {
                 chatId, cid, isGroup, jts: nowTs(), local: stream, audioTrack: stream.getAudioTracks()[0],
-                vTrack: null, vKind: null, vBusy: false, peers: new Map(), parts: {}, tiles: new Map(),
+                vTrack: null, vKind: null, sTrack: null, vBusy: false, peers: new Map(), parts: {}, tiles: new Map(),
                 speak: new Map(), unsubs: [], chain: Promise.resolve(), speakTimer: null
             };
             call = c;
@@ -3240,12 +3255,12 @@
     function makePeer(id, jts) {
         const c = call;
         const pc = new RTCPeerConnection(RTC_CFG);
-        const peer = { id, pc, jts, remote: new MediaStream(), vSender: null, pending: [], ready: false, state: 'new' };
+        const peer = { id, pc, jts, remote: new MediaStream(), vSender: null, sSender: null, audioSeen: 0, pending: [], ready: false, state: 'new' };
         pc.onicecandidate = (e) => { if (e.candidate) sendSignal(id, 'ice', e.candidate.toJSON()); };
         pc.ontrack = (e) => {
             if (call !== c) return;
             peer.remote.addTrack(e.track);
-            if (e.track.kind === 'audio') watchSpeaking(id, peer.remote);
+            if (e.track.kind === 'audio') { if (peer.audioSeen++ === 0) watchSpeaking(id, new MediaStream([e.track])); }   // first audio = microphone, second = shared screen/tab sound
             e.track.onunmute = () => renderTiles();
             renderTiles();
         };
@@ -3274,14 +3289,19 @@
             pc.addTrack(call.audioTrack, call.local);
             const t = pc.addTransceiver('video', { direction: 'sendrecv' });   // always there, so the camera can be switched on later without renegotiating
             peer.vSender = t.sender;
+            const t2 = pc.addTransceiver('audio', { direction: 'sendrecv' });  // always there, so shared screen/tab sound can be switched on later
+            peer.sSender = t2.sender;
         } else {
             const tr = pc.getTransceivers();
-            const a = tr.find(t => t.receiver.track && t.receiver.track.kind === 'audio');
+            const audios = tr.filter(t => t.receiver.track && t.receiver.track.kind === 'audio');
+            const a = audios[0], a2 = audios[1];
             const v = tr.find(t => t.receiver.track && t.receiver.track.kind === 'video');
             if (a) { a.direction = 'sendrecv'; await a.sender.replaceTrack(call.audioTrack); }
             if (v) { v.direction = 'sendrecv'; peer.vSender = v.sender; }
+            if (a2) { a2.direction = 'sendrecv'; peer.sSender = a2.sender; }   // older clients without this channel simply won't have it
         }
         if (peer.vSender && call.vTrack) await peer.vSender.replaceTrack(call.vTrack);
+        if (peer.sSender && call.sTrack) await peer.sSender.replaceTrack(call.sTrack);
     }
 
     async function startOffer(id, theirTs) {
@@ -3353,7 +3373,7 @@
                 try {
                     stream = kind === 'cam'
                         ? await navigator.mediaDevices.getUserMedia({ video: { width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30 } } })
-                        : await navigator.mediaDevices.getDisplayMedia({ video: true });
+                        : await navigator.mediaDevices.getDisplayMedia({ video: true, audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
                 } catch (e) {
                     if (kind === 'cam') alert(camErrorText(e));
                     else if (e && e.name !== 'NotAllowedError') alert('Could not share your screen.');
@@ -3362,10 +3382,17 @@
                 if (call !== c) { stream.getTracks().forEach(t => t.stop()); return; }
             }
             if (c.vTrack) { c.vTrack.onended = null; c.vTrack.stop(); }
+            if (c.sTrack) { c.sTrack.onended = null; c.sTrack.stop(); }
             c.vTrack = stream ? stream.getVideoTracks()[0] : null;
+            c.sTrack = (stream && kind === 'scr') ? (stream.getAudioTracks()[0] || null) : null;
             c.vKind = stream ? kind : null;
             if (c.vTrack) { const t = c.vTrack; t.onended = () => { if (call === c && c.vTrack === t) setVideo(null); }; }
             await Promise.all([...c.peers.values()].filter(p => p.vSender).map(p => p.vSender.replaceTrack(c.vTrack).catch(() => {})));
+            await Promise.all([...c.peers.values()].filter(p => p.sSender).map(p => p.sSender.replaceTrack(c.sTrack).catch(() => {})));
+            if (kind === 'scr' && stream) {
+                if (c.sTrack) callToast("Sharing your screen with sound. If you share your entire screen, other people's voices can be sent back to them as an echo: wear headphones, or share a single tab instead.", 7000);
+                else callToast('Your screen is shared WITHOUT sound. To share sound, share again and tick "Also share tab audio" (or "Share system audio") in the browser\'s share window.', 7000);
+            }
             pushState(); renderTiles();
         } finally { c.vBusy = false; renderTiles(); }
     }
@@ -3417,7 +3444,7 @@
         el.className = 'call-tile';
         const video = document.createElement('video');
         video.autoplay = true; video.playsInline = true;
-        if (id === myID) video.muted = true;
+        video.muted = true;   // sound comes from the separate <audio> element, so it is never doubled
         video.style.display = 'none';
         const av = document.createElement('div');
         av.className = 'call-av';
@@ -3433,7 +3460,12 @@
         const audio = document.createElement('audio');   // remote sound plays here, so it works even while the video is hidden
         audio.autoplay = true; audio.playsInline = true; audio.setAttribute('playsinline', '');
         if (id === myID) audio.muted = true;
-        el.append(video, av, label, audio);
+        const fs = document.createElement('button');
+        fs.type = 'button'; fs.className = 'tile-full'; fs.title = 'Fullscreen'; fs.setAttribute('aria-label', 'Fullscreen this person');
+        fs.innerHTML = '<svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>';
+        fs.onclick = (e) => { e.stopPropagation(); toggleFs(el); };
+        el.addEventListener('dblclick', () => toggleFs(el));
+        el.append(video, av, label, audio, fs);
         return { el, video, audio, av, nm, st, track: null };
     }
     function renderTiles() {
@@ -3465,7 +3497,8 @@
             const peer = call.peers.get(id);
             t.st.textContent = (!me && (!peer || (peer.state !== 'connected' && peer.state !== 'completed'))) ? 'connecting…' : '';
             t.el.classList.toggle('is-muted', p.mic === false);
-            grid.appendChild(t.el);
+            const pos = ids.indexOf(id);
+            if (grid.children[pos] !== t.el) grid.insertBefore(t.el, grid.children[pos] || null);   // only move when needed: moving a fullscreen tile would exit fullscreen
         });
         const n = ids.length;
         const cols = n <= 1 ? 1 : n <= 4 ? 2 : n <= 9 ? 3 : 4;
@@ -3477,6 +3510,34 @@
         document.getElementById('ctl-mic').classList.toggle('active', !call.audioTrack.enabled);
         document.getElementById('ctl-cam').classList.toggle('active', call.vKind === 'cam');
         document.getElementById('ctl-scr').classList.toggle('active', call.vKind === 'scr');
+    }
+    // ---- fullscreen (whole call, or a single person's tile) ----
+    const fsElement = () => document.fullscreenElement || document.webkitFullscreenElement || null;
+    const exitFs = () => (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+    function toggleFs(el) {
+        try {
+            if (fsElement()) { const r = exitFs(); if (r && r.catch) r.catch(() => {}); return; }
+            const req = el.requestFullscreen || el.webkitRequestFullscreen;
+            if (!req) return alert('This browser does not support fullscreen.');
+            const r = req.call(el);
+            if (r && r.catch) r.catch(() => alert('Could not go fullscreen.'));
+        } catch (e) { alert('Could not go fullscreen.'); }
+    }
+    window.toggleCallFullscreen = () => toggleFs(document.getElementById('call-view'));
+    function onFsChange() {
+        const b = document.getElementById('ctl-full');
+        if (b) b.classList.toggle('active', fsElement() === document.getElementById('call-view'));
+    }
+    document.addEventListener('fullscreenchange', onFsChange);
+    document.addEventListener('webkitfullscreenchange', onFsChange);
+    let toastTimer = null;
+    function callToast(text, ms) {
+        const el = document.getElementById('call-toast');
+        if (!el) return;
+        el.textContent = text;
+        el.classList.add('open');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => el.classList.remove('open'), ms || 5000);
     }
     document.addEventListener('click', () => {
         if (!call) return;
@@ -3500,6 +3561,8 @@
         c.speak.forEach(w => { try { w.src.disconnect(); } catch (e) {} });
         try { c.local.getTracks().forEach(t => t.stop()); } catch (e) {}
         if (c.vTrack) { c.vTrack.onended = null; c.vTrack.stop(); }
+        if (c.sTrack) { c.sTrack.onended = null; c.sTrack.stop(); }
+        try { if (fsElement()) exitFs(); } catch (e) {}
         c.tiles.forEach(t => { t.video.srcObject = null; t.audio.srcObject = null; });
         document.getElementById('call-grid').replaceChildren();
         document.getElementById('call-view').classList.remove('open');
